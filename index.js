@@ -16,7 +16,7 @@ const backoffStrategy = {
     randomize: true
 };
 
-function suggestedName(fname, fromPath){
+function suggestedName(fname, fromPath, noRootFolder){
     if ((!fromPath) || (fromPath.length === 0) || (fromPath === '/')) {
         return fname;
     }
@@ -27,10 +27,10 @@ function suggestedName(fname, fromPath){
     }
     const splitFname = fname.split('/').filter(s => s.length > 0);
     if (splitFname.length > index) {
-        return splitFname.slice(index).join('/');
+        return splitFname.slice(noRootFolder ? index + 1 : index).join('/');
     }
     return fname;
-}   
+}
 
 const validateOptions = ({fromBucket, fromPath}) => {
     if (typeof(fromBucket) !== 'string') {
@@ -43,13 +43,13 @@ const validateOptions = ({fromBucket, fromPath}) => {
 
 module.exports = (storage) => (options) => {
     validateOptions(options);
-    const {fromBucket, fromPath, toBucket, toPath, keep, mapper, metadata, progress, downloadValidation} = options;
+    const {fromBucket, fromPath, toBucket, toPath, keep, mapper, metadata, progress, downloadValidation, rootFolder} = options;
 
     if ((!keep) && (!toBucket)) {
         return Promise.resolve(null);
     }
     const manifest = [];
-    
+
     const zip = archiver('zip', {zlib: { level: 9 }});
     zip.on('error', (e)=>{ throw e; });
 
@@ -88,7 +88,8 @@ module.exports = (storage) => (options) => {
     }
 
     function zipFile(f) {
-        let pathInZip = suggestedName(f.name, fromPath);
+        let pathInZip = suggestedName(f.name, fromPath, !rootFolder);
+
         if (typeof(mapper) === 'function') {
             pathInZip = mapper(f, pathInZip);
             if (!pathInZip) {
@@ -146,8 +147,8 @@ module.exports = (storage) => (options) => {
             metadata,
             manifest
         };
-    }	
-    
+    }
+
     return getListOfFromFiles()
         .then(zipEachFile)
         .then(finalize)

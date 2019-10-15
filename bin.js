@@ -55,12 +55,13 @@ function output(status){
  .option('--keep <keep>', 'path in local filesystem to keep a copy of the .zip file', setKeep)
  .option('--progress', 'show progress messages', setProgress)
  .option('--json','output parameters and manifest in json', setJSON)
- .action(function(fromBucketPath, toBucketPath){
+ .option('--no-root-folder','exclude root folder from archive')
+ .action(function(fromBucketPath, toBucketPath, options){
      if (gsParse(fromBucketPath,'fromBucket','fromPath')){
 	 gsParse(toBucketPath, 'toBucket', 'toPath');
 	 const storage = new Storage(credentials);
 	 const zipBucket = zipBucketFactory(storage);
-	 zipBucket(z).then(
+	 zipBucket({ ...z, ...options }).then(
 	     (status)=>{if (useJSON) console.log(JSON.stringify(status,null,2));}, (e)=>(console.log(e))
 	 );
      }
